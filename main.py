@@ -5,19 +5,50 @@ from Plot.AnimatePlotDriver import CAnimateDriver
 from Plot.PlotDriver import CPlotDriver
 import matplotlib.pyplot as plt
 import argparse
+
+def get_interval(intervals: str) -> str:
+
+    interval_map = {
+        "1m": KL_TYPE.K_1M,
+        "5m": KL_TYPE.K_5M,
+        "15m": KL_TYPE.K_15M,
+        "30m": KL_TYPE.K_30M,
+        "60m": KL_TYPE.K_60M,
+        "1d": KL_TYPE.K_DAY,
+        "1wk": KL_TYPE.K_WEEK,
+        "1mo": KL_TYPE.K_MON,
+        "3mo": KL_TYPE.K_QUARTER,
+    }
+    ret=[]
+    for interval in intervals.split(","):
+        if interval not in interval_map:
+            raise ValueError(f"Invalid interval: {interval}")
+        ret.append(interval_map[interval])
+    return ret
+def get_code(ticker: str, data_src:str) -> str:
+    ticker=ticker.lower()
+    if data_src == DATA_SRC.BAO_STOCK and ticker.startswith(".sz"):
+        code = ticker[-2:] + '.' + ticker[:3]
+        print(f"convert ticker to {code}")
+    elif data_src == DATA_SRC.BAO_STOCK and ticker.endswith(".ss"):
+        code = 'sh' + '.' + ticker[:-3]
+        print(f"convert ticker to {code}")
+    else:
+        code = ticker
+    return code
 if __name__ == "__main__":
     argparser=argparse.ArgumentParser()
     argparser.add_argument("--ticker",type=str,default="sh.000001")
+    argparser.add_argument("--interval",type=str,default="1wk,1d", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     args=argparser.parse_args()
-    code=args.ticker
-    if code.endswith(".sh") or code.startswith(".sz"):
-        code=code[-2:]+'.'+code[:3]
-        print(f"convert ticker to {code}")
+    data_src = DATA_SRC.BAO_STOCK
+    code=get_code(args.ticker,data_src)
+    
     begin_time = "2018-01-01"
     end_time = None
-    data_src = DATA_SRC.BAO_STOCK
-    lv_list = [KL_TYPE.K_WEEK, KL_TYPE.K_DAY]
-
+    
+    #lv_list = [KL_TYPE.K_WEEK, KL_TYPE.K_DAY]
+    lv_list = get_interval(args.interval)
     config = CChanConfig({
         "bi_strict": True,
         "trigger_step": False,
