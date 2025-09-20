@@ -61,14 +61,15 @@ class YAHOO_API(CCommonStockApi):
         print(f"download {self.code} from {self.begin_date} to {self.end_date} by {self.k_type.name[2:].lower()}")
         df=yf.download(self.code, start=self.begin_date, end=self.end_date, interval='1d', progress=False)
         df=df.droplevel(1,axis=1)
+        df=df[['Open','High','Low','Close']]
         df=df.reset_index()
         for idx, row in df.iterrows():
             data = [
                 row.values[0].strftime('%Y-%m-%d'),
-                row.values[1],
-                row.values[2],
-                row.values[3],
-                row.values[4]
+                round(row.values[1],4),
+                round(row.values[2],4),
+                round(row.values[3],4),
+                round(row.values[4],4),
             ]
             yield CKLine_Unit(create_item_dict(data, self.columns))
 

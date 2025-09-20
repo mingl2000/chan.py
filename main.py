@@ -25,30 +25,28 @@ def get_interval(intervals: str) -> str:
             raise ValueError(f"Invalid interval: {interval}")
         ret.append(interval_map[interval])
     return ret
-def get_code(ticker: str, data_src:str) -> str:
+def get_code(ticker: str) -> str:
     ticker=ticker.lower()
-    if data_src == DATA_SRC.BAO_STOCK and ticker.startswith(".sz"):
-        code = ticker[-2:] + '.' + ticker[:3]
-        print(f"convert ticker to {code}")
-    elif data_src == DATA_SRC.BAO_STOCK and ticker.endswith(".ss"):
+    if ticker.endswith(".ss"):    
+        data_src = DATA_SRC.BAO_STOCK
         code = 'sh' + '.' + ticker[:-3]
-        print(f"convert ticker to {code}")
+    elif ticker.endswith(".sz"):
+        data_src = DATA_SRC.BAO_STOCK
+        code = 'sz' + '.' + ticker[:-3]
     else:
+        data_src = DATA_SRC.YAHOO_API
         code = ticker
-    return code
+    return code,data_src
 if __name__ == "__main__":
     argparser=argparse.ArgumentParser()
     argparser.add_argument("--ticker",type=str,default="000001.ss")
     argparser.add_argument("--interval",type=str,default="1wk,1d", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     args=argparser.parse_args()
-    #data_src = DATA_SRC.BAO_STOCK
-    data_src = DATA_SRC.YAHOO_API
-    code=get_code(args.ticker,data_src)
+    code, data_src=get_code(args.ticker)
     
     begin_time = "2018-01-01"
     end_time = None
     
-    #lv_list = [KL_TYPE.K_WEEK, KL_TYPE.K_DAY]
     lv_list = get_interval(args.interval)
     config = CChanConfig({
         "bi_strict": True,
