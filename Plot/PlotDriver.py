@@ -88,7 +88,7 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         - Figure
         - Dict[KL_TYPE, List[Axes]]: 如果Axes长度为1, 说明不需要画macd, 否则需要
     """
-    default_w, default_h = 24, 10
+    default_w, default_h = 34, 13
     macd_h_ration = figure_config.get('macd_h', 0.3)
     w = figure_config.get('w', default_w)
     h = figure_config.get('h', default_h)
@@ -111,6 +111,7 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         figsize=(w, total_h),
         gridspec_kw={'height_ratios': gridspec_kw}
     )
+    plt.subplots_adjust(left=0.02, right=0.97, top=0.97, bottom=0.03, hspace=0.2)
     try:
         axes[0]
     except Exception:  # 只有一个级别，且不需要画macd

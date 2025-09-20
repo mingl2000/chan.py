@@ -3,9 +3,16 @@ from ChanConfig import CChanConfig
 from Common.CEnum import AUTYPE, DATA_SRC, KL_TYPE
 from Plot.AnimatePlotDriver import CAnimateDriver
 from Plot.PlotDriver import CPlotDriver
-
+import matplotlib.pyplot as plt
+import argparse
 if __name__ == "__main__":
-    code = "sz.000001"
+    argparser=argparse.ArgumentParser()
+    argparser.add_argument("--ticker",type=str,default="sh.000001")
+    args=argparser.parse_args()
+    code=args.ticker
+    if code.endswith(".sh") or code.startswith(".sz"):
+        code=code[-2:]+'.'+code[:3]
+        print(f"convert ticker to {code}")
     begin_time = "2018-01-01"
     end_time = None
     data_src = DATA_SRC.BAO_STOCK
@@ -27,7 +34,7 @@ if __name__ == "__main__":
     })
 
     plot_config = {
-        "plot_kline": True,
+        "plot_kline": False,
         "plot_kline_combine": True,
         "plot_bi": True,
         "plot_seg": True,
@@ -86,3 +93,4 @@ if __name__ == "__main__":
             plot_config=plot_config,
             plot_para=plot_para,
         )
+    plt.show()
