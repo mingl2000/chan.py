@@ -66,10 +66,10 @@ class YAHOO_API(CCommonStockApi):
         for idx, row in df.iterrows():
             data = [
                 row.values[0].strftime('%Y-%m-%d'),
-                round(row.values[1],4),
-                round(row.values[2],4),
-                round(row.values[3],4),
-                round(row.values[4],4),
+                row.values[1],
+                max(row.values[1:5]),
+                min(row.values[1:5]),
+                row.values[4]
             ]
             yield CKLine_Unit(create_item_dict(data, self.columns))
 
