@@ -16,7 +16,7 @@ if __name__ == "__main__":
     begin_time = "2018-01-01"
     end_time = None
     data_src = DATA_SRC.BAO_STOCK
-    lv_list = [KL_TYPE.K_DAY]
+    lv_list = [KL_TYPE.K_WEEK, KL_TYPE.K_DAY]
 
     config = CChanConfig({
         "bi_strict": True,
@@ -94,5 +94,5 @@ if __name__ == "__main__":
             plot_para=plot_para,
         )
     manager = plt.get_current_fig_manager()
-    manager.full_screen_toggle()
+    manager.window.state('zoomed')
     plt.show()
