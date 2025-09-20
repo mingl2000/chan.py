@@ -38,10 +38,11 @@ def get_code(ticker: str, data_src:str) -> str:
     return code
 if __name__ == "__main__":
     argparser=argparse.ArgumentParser()
-    argparser.add_argument("--ticker",type=str,default="sh.000001")
+    argparser.add_argument("--ticker",type=str,default="000001.ss")
     argparser.add_argument("--interval",type=str,default="1wk,1d", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     args=argparser.parse_args()
-    data_src = DATA_SRC.BAO_STOCK
+    #data_src = DATA_SRC.BAO_STOCK
+    data_src = DATA_SRC.YAHOO_API
     code=get_code(args.ticker,data_src)
     
     begin_time = "2018-01-01"
