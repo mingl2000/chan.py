@@ -93,4 +93,6 @@ if __name__ == "__main__":
             plot_config=plot_config,
             plot_para=plot_para,
         )
+    manager = plt.get_current_fig_manager()
+    manager.full_screen_toggle()
     plt.show()
