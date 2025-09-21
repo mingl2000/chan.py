@@ -25,9 +25,17 @@ def get_interval(intervals: str) -> str:
             raise ValueError(f"Invalid interval: {interval}")
         ret.append(interval_map[interval])
     return ret
-def get_code(ticker: str) -> str:
+def is_index(ticker: str) -> bool:
     ticker=ticker.lower()
-    if ticker.endswith(".ss"):    
+    if ticker in ["000001.ss","000300.ss","000905.ss","000016.ss","sh.000001","sh.000300","sh.000905","sh.000016","399001.sz","399006.sz","sz.399001","sz.399006"]:
+        return True
+    return False
+def get_code(ticker: str, inerval) -> str:
+    ticker=ticker.lower()
+    if is_index(ticker) and inerval in ['1m','5m','15m','30m','60m','1mo']:
+        data_src = DATA_SRC.YAHOO_API
+        code = ticker
+    elif ticker.endswith(".ss"):    
         data_src = DATA_SRC.BAO_STOCK
         code = 'sh' + '.' + ticker[:-3]
     elif ticker.endswith(".sz"):
@@ -42,7 +50,7 @@ if __name__ == "__main__":
     argparser.add_argument("--ticker",type=str,default="000001.ss")
     argparser.add_argument("--interval",type=str,default="1wk,1d", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     args=argparser.parse_args()
-    code, data_src=get_code(args.ticker)
+    code, data_src=get_code(args.ticker, args.interval)
     
     begin_time = "2018-01-01"
     end_time = None
