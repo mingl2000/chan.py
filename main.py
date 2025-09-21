@@ -3,14 +3,59 @@ from ChanConfig import CChanConfig
 from Common.CEnum import AUTYPE, DATA_SRC, KL_TYPE
 from Plot.AnimatePlotDriver import CAnimateDriver
 from Plot.PlotDriver import CPlotDriver
+import matplotlib.pyplot as plt
+import argparse
 
+def get_interval(intervals: str) -> str:
+
+    interval_map = {
+        "1m": KL_TYPE.K_1M,
+        "5m": KL_TYPE.K_5M,
+        "15m": KL_TYPE.K_15M,
+        "30m": KL_TYPE.K_30M,
+        "60m": KL_TYPE.K_60M,
+        "1d": KL_TYPE.K_DAY,
+        "1wk": KL_TYPE.K_WEEK,
+        "1mo": KL_TYPE.K_MON,
+        "3mo": KL_TYPE.K_QUARTER,
+    }
+    ret=[]
+    for interval in intervals.split(","):
+        if interval not in interval_map:
+            raise ValueError(f"Invalid interval: {interval}")
+        ret.append(interval_map[interval])
+    return ret
+def is_index(ticker: str) -> bool:
+    ticker=ticker.lower()
+    if ticker in ["000001.ss","000300.ss","000905.ss","000016.ss","sh.000001","sh.000300","sh.000905","sh.000016","399001.sz","399006.sz","sz.399001","sz.399006"]:
+        return True
+    return False
+def get_code(ticker: str, inerval) -> str:
+    ticker=ticker.lower()
+    if is_index(ticker) and inerval in ['1m','5m','15m','30m','60m','1mo']:
+        data_src = DATA_SRC.YAHOO_API
+        code = ticker
+    elif ticker.endswith(".ss"):    
+        data_src = DATA_SRC.BAO_STOCK
+        code = 'sh' + '.' + ticker[:-3]
+    elif ticker.endswith(".sz"):
+        data_src = DATA_SRC.BAO_STOCK
+        code = 'sz' + '.' + ticker[:-3]
+    else:
+        data_src = DATA_SRC.YAHOO_API
+        code = ticker
+    return code,data_src
 if __name__ == "__main__":
-    code = "sz.000001"
+    argparser=argparse.ArgumentParser()
+    argparser.add_argument("--ticker",type=str,default="000001.ss")
+    argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
+    args=argparser.parse_args()
+    code, data_src=get_code(args.ticker, args.interval)
+    
     begin_time = "2018-01-01"
     end_time = None
-    data_src = DATA_SRC.BAO_STOCK
-    lv_list = [KL_TYPE.K_DAY]
-
+    
+    lv_list = get_interval(args.interval)
     config = CChanConfig({
         "bi_strict": True,
         "trigger_step": False,
@@ -27,7 +72,7 @@ if __name__ == "__main__":
     })
 
     plot_config = {
-        "plot_kline": True,
+        "plot_kline": False,
         "plot_kline_combine": True,
         "plot_bi": True,
         "plot_seg": True,
@@ -86,3 +131,6 @@ if __name__ == "__main__":
             plot_config=plot_config,
             plot_para=plot_para,
         )
+    manager = plt.get_current_fig_manager()
+    manager.window.state('zoomed')
+    plt.show()

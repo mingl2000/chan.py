@@ -111,6 +111,7 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         figsize=(w, total_h),
         gridspec_kw={'height_ratios': gridspec_kw}
     )
+    plt.subplots_adjust(left=0.02, right=0.97, top=0.97, bottom=0.05, hspace=0.2)
     try:
         axes[0]
     except Exception:  # 只有一个级别，且不需要画macd
