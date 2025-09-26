@@ -7,6 +7,7 @@ class DATA_SRC(Enum):
     CCXT = auto()
     CSV = auto()
     YAHOO_API = auto()
+    TDX_API = auto()
 
 
 class KL_TYPE(Enum):

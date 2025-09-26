@@ -173,6 +173,9 @@ class CChan:
         if self.data_src == DATA_SRC.YAHOO_API:
             from DataAPI.yahooAPI import YAHOO_API
             _dict[DATA_SRC.YAHOO_API] = YAHOO_API
+        elif self.data_src == DATA_SRC.TDX_API:
+            from DataAPI.TDXAPI import TDX_API
+            _dict[DATA_SRC.TDX_API] = TDX_API
         elif self.data_src == DATA_SRC.BAO_STOCK:
             from DataAPI.BaoStockAPI import CBaoStock
             _dict[DATA_SRC.BAO_STOCK] = CBaoStock
