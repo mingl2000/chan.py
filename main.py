@@ -48,7 +48,7 @@ def get_code(ticker: str, inerval, source) -> str:
 if __name__ == "__main__":
     argparser=argparse.ArgumentParser()
     argparser.add_argument("--ticker",type=str,default="000001.ss")
-    argparser.add_argument("--interval",type=str,default="5m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
+    argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
     args=argparser.parse_args()
     code, data_src=get_code(args.ticker, args.interval,args.source)
