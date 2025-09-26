@@ -27,32 +27,33 @@ def get_interval(intervals: str) -> str:
     return ret
 def is_index(ticker: str) -> bool:
     ticker=ticker.lower()
-    if ticker in ["000001.ss","000300.ss","000905.ss","000016.ss","sh.000001","sh.000300","sh.000905","sh.000016","399001.sz","399006.sz","sz.399001","sz.399006"]:
+    if ticker in ["000001.ss","000300.ss","000905.ss","000016.ss","sh.000001","sh.000300","sh.000905","sh.000016","399001.sz","399006.sz","sz.399001","sz.399006","000688.ss"]:
         return True
     return False
-def get_code(ticker: str, inerval) -> str:
+def get_code(ticker: str, inerval, source) -> str:
     ticker=ticker.lower()
-    if is_index(ticker) and inerval in ['1m','5m','15m','30m','60m','1mo']:
+    if source == "tdx":
+        data_src = DATA_SRC.TDX_API
+    elif source == "yahoo":
         data_src = DATA_SRC.YAHOO_API
-        code = ticker
-    elif ticker.endswith(".ss"):    
-        data_src = DATA_SRC.BAO_STOCK
-        code = 'sh' + '.' + ticker[:-3]
-    elif ticker.endswith(".sz"):
-        data_src = DATA_SRC.BAO_STOCK
-        code = 'sz' + '.' + ticker[:-3]
     else:
-        data_src = DATA_SRC.YAHOO_API
-        code = ticker
-    return code,data_src
+        data_src = DATA_SRC.BAO_STOCK
+        if ticker.endswith(".ss"):    
+            ticker = 'sh' + '.' + ticker[:-3]
+        elif ticker.endswith(".sz"):
+            data_src = DATA_SRC.BAO_STOCK
+        ticker = 'sz' + '.' + ticker[:-3]
+
+    return ticker,data_src
 if __name__ == "__main__":
     argparser=argparse.ArgumentParser()
     argparser.add_argument("--ticker",type=str,default="000001.ss")
-    argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
+    argparser.add_argument("--interval",type=str,default="5m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
+    argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
     args=argparser.parse_args()
-    code, data_src=get_code(args.ticker, args.interval)
+    code, data_src=get_code(args.ticker, args.interval,args.source)
     
-    begin_time = "2018-01-01"
+    begin_time = "2000-01-01"
     end_time = None
     
     lv_list = get_interval(args.interval)

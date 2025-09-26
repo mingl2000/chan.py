@@ -65,21 +65,25 @@ def GetTDXData_v3(symbol, bars, interval='1d'):
       date_strings = np.char.mod('%08d', df['Date'].values) 
       df.index =  pd.to_datetime(date_strings, format='%Y%m%d')
       df.drop(columns=['stock_reservation','Date'], inplace=True)
+      df['Open']= np.divide(records['Open'], 100)
+      df['High']= np.divide(records['High'], 100)
+      df['Low']= np.divide(records['Low'], 100)
+      df['Close']= np.divide(records['Close'], 100)
+      df['Vwap'] = df['Amount']/df['Volume']
+      return df
     elif interval in ['5m']:
       record_dtype = np.dtype([      
       ('Date', 'u2'),
       ('Min', 'u2'),
-      ('Open', 'u4'),      # 2-byte integer (big-endian)
-      ('High', 'u4'),      # 2-byte integer (big-endian)
-      ('Low', 'u4'),      # 2-byte integer (big-endian)
-      ('Close', 'u4'),      # 2-byte integer (big-endian)
+      ('Open', 'f4'),      # 2-byte integer (big-endian)
+      ('High', 'f4'),      # 2-byte integer (big-endian)
+      ('Low', 'f4'),      # 2-byte integer (big-endian)
+      ('Close', 'f4'),      # 2-byte integer (big-endian)
       ('Amount', 'f4'),      # 2-byte integer (big-endian)
       ('Volume', 'u4'),      # 2-byte integer (big-endian)
       ('stock_reservation', 'u4')      # 2-byte integer (big-endian)
       ]) 
       records =np.fromfile(filename, dtype=record_dtype)
-      #a=np.datetime64(records['date'], '%Y%M%d')
-      #stock_date=datetime.strptime(str(records['date']), '%Y%M%d')
       df=pd.DataFrame(records) 
       date_int =np.char.mod('%04d', df['Date'].values).astype(int)
       min_int =np.char.mod('%04d', df['Min'].values).astype(int)
@@ -92,14 +96,8 @@ def GetTDXData_v3(symbol, bars, interval='1d'):
         'minute': np.mod(min_int,60)
       })
       df.drop(columns=['stock_reservation','Date','Min'], inplace=True)
-    if df is not None:
-      df['Open']= np.divide(records['Open'], 100)
-      df['High']= np.divide(records['High'], 100)
-      df['Low']= np.divide(records['Low'], 100)
-      df['Close']= np.divide(records['Close'], 100)
       df['Vwap'] = df['Amount']/df['Volume']
       return df
-
   return None
 
 
@@ -108,7 +106,7 @@ if __name__ == '__main__':
   print(sys.version)
   start=datetime.now()
   #df=GetTDXData_v3('002049.sz',500,'1d')
-  df=GetTDXData_v4(['002049.sz','000001.ss'],500,'1d')
+  df=GetTDXData_v4(['002049.sz'],500,'5m')
   print(len(df))
   print(df.tail(10))
   end=datetime.now()
