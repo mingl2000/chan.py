@@ -75,23 +75,38 @@ class TDX_API(CCommonStockApi):
     def get_kl_data(self):
         
         interval=self.get_interval()
-        df=GetTDXData_v4([self.code,],500,interval)
-        df.columns=['Open','High','Low','Close','Amount','Volume','Vwap']
-        df=df[['Open','High','Low','Close']]
+        if interval in ['60m','30m','15m','5m']:
+            df=GetTDXData_v4([self.code,],500,'5m')
+            df.columns=['Open','High','Low','Close','Amount','Volume','Vwap']
+            df=df[['Open','High','Low','Close']]
+            
+            if interval!='5m':
+                df = df.resample('15Min').ohlc()
+                df=df[[('Open','open'),('High','high'),('Low','low'),('Close','close')]]
+                df.columns=['Open','High','Low','Close']
+                print(df.tail(5))
+                
+        else:
+            df=GetTDXData_v4([self.code,],500,interval)
+            df.columns=['Open','High','Low','Close','Amount','Volume','Vwap']
+            df=df[['Open','High','Low','Close']]
         print(f"download {self.code} from {df.index[0]} to {df.index[-1]} by {self.get_interval()}")
         df=df.reset_index()
         
         timeformat='%Y-%m-%d %H:%M:%S' if interval.endswith("m") else '%Y-%m-%d'
         for idx, row in df.iterrows():
-            data = [
-                row.values[0].strftime(timeformat),
-                row.values[1],
-                max(row.values[1:5]),
-                min(row.values[1:5]),
-                row.values[4]
-            ]
-            yield CKLine_Unit(create_item_dict(data, self.columns))
-
+            try:
+                data = [
+                    row.values[0].strftime(timeformat),
+                    row.values[1],
+                    max(row.values[1:5]),
+                    min(row.values[1:5]),
+                    row.values[4]
+                ]
+                yield CKLine_Unit(create_item_dict(data, self.columns))
+            except Exception as e:
+                #print(f"error row {row}, {e} {row.values[0]} {type(row.values[0])}")
+                continue
     def SetBasciInfo(self):
         pass
 
