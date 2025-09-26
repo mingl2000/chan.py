@@ -17,7 +17,7 @@ def get_tdx_file_path(ticker, interval='1d'):
   for rp in rootpaths:
     if interval=='1d':
       path = f"{rp}{exchange}/lday/{exchange}{ticker[:6]}.day"
-    elif interval in ['5min','5m']:
+    elif interval in ['5m']:
       path = f"{rp}{exchange}/fzline/{exchange}{ticker[:6]}.lc5"
     elif interval in ['1min','1m']:
       path = f"{rp}{exchange}/minline/{exchange}{ticker[:6]}.lc1"  
@@ -65,7 +65,7 @@ def GetTDXData_v3(symbol, bars, interval='1d'):
       date_strings = np.char.mod('%08d', df['Date'].values) 
       df.index =  pd.to_datetime(date_strings, format='%Y%m%d')
       df.drop(columns=['stock_reservation','Date'], inplace=True)
-    elif interval=='5min':
+    elif interval in ['5m']:
       record_dtype = np.dtype([      
       ('Date', 'u2'),
       ('Min', 'u2'),
