@@ -97,7 +97,7 @@ def GetTDXData_v3(symbol, bars, interval='1d'):
       })
       df.drop(columns=['stock_reservation','Date','Min'], inplace=True)
       df['Vwap'] = df['Amount']/df['Volume']
-      return df
+      return df[-bars:]
   return None
 
 
