@@ -1,6 +1,19 @@
-START /B cmd /c python  .\main.py --ticker 000001.ss --interval 5m
-START /B cmd /c python  .\main.py --ticker 399001.sz --interval 5m
-START /B cmd /c python  .\main.py --ticker 399006.sz --interval 5m
-START /B cmd /c python  .\main.py --ticker 000688.ss --interval 5m
+START /B cmd /c python  .\main.py --ticker 000001.ss --interval 5m --name 上证
+START /B cmd /c python  .\main.py --ticker 399001.sz --interval 5m --name 深成指
+START /B cmd /c python  .\main.py --ticker 399006.sz --interval 5m --name 创业版指50
+START /B cmd /c python  .\main.py --ticker 000688.ss --interval 5m --name 科创50
 START /B cmd /c python  .\main.py --ticker 0700.hk --interval 5m --source yahoo
 START /B cmd /c python  .\main.py --ticker msft --interval 5m --source yahoo
+START /B cmd /c python .\main.py --ticker 880008.ss --interval 5m --name 平均股价
+START /B cmd /c python  .\main.py --ticker 880008.ss --interval 5m --name 全A等权
+START /B cmd /c python  .\main.py --ticker 588200.ss --interval 5m --name 科创芯片ETF
+START /B cmd /c python  .\main.py --ticker 880491.ss --interval 5m --name 半导体
+START /B cmd /c python  .\main.py --ticker 880490.ss --interval 5m --name 通信设备
+START /B cmd /c python  .\main.py --ticker 880492.ss --interval 5m --name 元器件
+START /B cmd /c python .\main.py --ticker 880493.ss --interval 5m --name 软件服务
+START /B cmd /c python .\main.py --ticker 880472.ss --interval 5m --name 证券
+START /B cmd /c python .\main.py --ticker 880329.ss --interval 5m --name 小金属
+START /B cmd /c python .\main.py --ticker 880821.ss --interval 5m --name 大盘股
+START /B cmd /c python  .\main.py --ticker 880822.ss --interval 5m --name 中盘股
+START /B cmd /c python  .\main.py --ticker 880823.ss --interval 5m --name 小盘股
+
