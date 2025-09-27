@@ -134,4 +134,5 @@ if __name__ == "__main__":
         )
     manager = plt.get_current_fig_manager()
     manager.window.state('zoomed')
+    manager.set_window_title(args.ticker)
     plt.show()
