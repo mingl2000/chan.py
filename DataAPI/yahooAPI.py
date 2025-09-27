@@ -77,7 +77,7 @@ class YAHOO_API(CCommonStockApi):
         if interval.endswith("1m"):
             df=yf.download(self.code, period='7d', interval=interval, progress=False)
         elif interval.endswith("60m"):
-            df=yf.download(self.code, period='720d', interval=interval, progress=False)
+            df=yf.download(self.code, period='730d', interval=interval, progress=False)
         elif interval.endswith("m"):
             df=yf.download(self.code, period='60d', interval=interval, progress=False)
         else:

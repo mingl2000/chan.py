@@ -50,7 +50,10 @@ if __name__ == "__main__":
     argparser.add_argument("--ticker",type=str,default="000001.ss")
     argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
+    argparser.add_argument("--name",type=str,default="", help='', required=False)
     args=argparser.parse_args()
+    if args.name=="":
+        args.name=args.ticker    
     code, data_src=get_code(args.ticker, args.interval,args.source)
     
     begin_time = "2000-01-01"
@@ -125,7 +128,7 @@ if __name__ == "__main__":
             plot_para=plot_para,
         )
         plot_driver.figure.show()
-        plot_driver.save2img(f"./{args.ticker}.png")
+        plot_driver.save2img(f"./{args.ticker}_{args.interval}.png")
     else:
         CAnimateDriver(
             chan,
