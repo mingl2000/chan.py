@@ -1,19 +1,21 @@
-START /B cmd /c python  .\main.py --ticker 000001.ss --interval 5m --name ä¸Šè¯
-START /B cmd /c python  .\main.py --ticker 399001.sz --interval 5m --name æ·±æˆæŒ‡
-START /B cmd /c python  .\main.py --ticker 399006.sz --interval 5m --name åˆ›ä¸šç‰ˆæŒ‡50
-START /B cmd /c python  .\main.py --ticker 000688.ss --interval 5m --name ç§‘åˆ›50
+START /B cmd /c python  .\main.py --ticker 000001.ss --interval 5m --name ÉÏÖ¤
+START /B cmd /c python  .\main.py --ticker 399001.sz --interval 5m --name Éî³ÉÖ¸
+START /B cmd /c python  .\main.py --ticker 399006.sz --interval 5m --name ´´Òµ°æÖ¸50
+START /B cmd /c python  .\main.py --ticker 000688.ss --interval 5m --name ¿Æ´´50
 START /B cmd /c python  .\main.py --ticker 0700.hk --interval 5m --source yahoo
 START /B cmd /c python  .\main.py --ticker msft --interval 5m --source yahoo
-START /B cmd /c python .\main.py --ticker 880008.ss --interval 5m --name å¹³å‡è‚¡ä»·
-START /B cmd /c python  .\main.py --ticker 880008.ss --interval 5m --name å…¨Aç­‰æƒ
-START /B cmd /c python  .\main.py --ticker 588200.ss --interval 5m --name ç§‘åˆ›èŠ¯ç‰‡ETF
-START /B cmd /c python  .\main.py --ticker 880491.ss --interval 5m --name åŠå¯¼ä½“
-START /B cmd /c python  .\main.py --ticker 880490.ss --interval 5m --name é€šä¿¡è®¾å¤‡
-START /B cmd /c python  .\main.py --ticker 880492.ss --interval 5m --name å…ƒå™¨ä»¶
-START /B cmd /c python .\main.py --ticker 880493.ss --interval 5m --name è½¯ä»¶æœåŠ¡
-START /B cmd /c python .\main.py --ticker 880472.ss --interval 5m --name è¯åˆ¸
-START /B cmd /c python .\main.py --ticker 880329.ss --interval 5m --name å°é‡‘å±
-START /B cmd /c python .\main.py --ticker 880821.ss --interval 5m --name å¤§ç›˜è‚¡
-START /B cmd /c python  .\main.py --ticker 880822.ss --interval 5m --name ä¸­ç›˜è‚¡
-START /B cmd /c python  .\main.py --ticker 880823.ss --interval 5m --name å°ç›˜è‚¡
+START /B cmd /c python .\main.py --ticker 880008.ss --interval 5m --name Æ½¾ù¹É¼Û
+START /B cmd /c python  .\main.py --ticker 880008.ss --interval 5m --name È«AµÈÈ¨
+START /B cmd /c python  .\main.py --ticker 588200.ss --interval 5m --name ¿Æ´´Ğ¾Æ¬ETF
+START /B cmd /c python  .\main.py --ticker 880491.ss --interval 5m --name °ëµ¼Ìå
+START /B cmd /c python  .\main.py --ticker 880490.ss --interval 5m --name Í¨ĞÅÉè±¸
+START /B cmd /c python  .\main.py --ticker 880492.ss --interval 5m --name ÔªÆ÷¼ş
+START /B cmd /c python .\main.py --ticker 880493.ss --interval 5m --name Èí¼ş·şÎñ
+START /B cmd /c python .\main.py --ticker 880472.ss --interval 5m --name Ö¤È¯
+START /B cmd /c python .\main.py --ticker 880329.ss --interval 5m --name Ğ¡½ğÊô
+START /B cmd /c python .\main.py --ticker 880821.ss --interval 5m --name ´óÅÌ¹É
+START /B cmd /c python  .\main.py --ticker 880822.ss --interval 5m --name ÖĞÅÌ¹É
+
+START /B cmd /c python  .\main.py --ticker 880823.ss --interval 5m --name Ğ¡ÅÌ¹É
+START /B cmd /c python  .\main.py --ticker 3033.hk --interval 5m --name ºãÉú¿Æ¼¼ --source yahoo
 

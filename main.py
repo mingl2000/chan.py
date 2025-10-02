@@ -50,7 +50,7 @@ if __name__ == "__main__":
     argparser.add_argument("--ticker",type=str,default="000001.ss")
     argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
-    argparser.add_argument("--name",type=str,default="", help='', required=False)
+    argparser.add_argument("--name",type=str,default="车上", help='', required=False)
     args=argparser.parse_args()
     if args.name=="":
         args.name=args.ticker    
@@ -119,6 +119,7 @@ if __name__ == "__main__":
         lv_list=lv_list,
         config=config,
         autype=AUTYPE.QFQ,
+        name=args.name,
     )
 
     if not config.trigger_step:

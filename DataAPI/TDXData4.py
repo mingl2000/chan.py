@@ -101,12 +101,36 @@ def GetTDXData_v3(symbol, bars, interval='1d'):
   return None
 
 
+import argparse
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Print Fibonacci numbers by count or up-to limit.",
+    )
+    parser.add_argument(
+        "--ticker",
+        type=str,
+        default='000001.ss',
+        help="ticker in Yahoo format 000001.ss or 000001.sz",
+    )
+    parser.add_argument(
+        "--interval",
+        default="5m",
+        help="5m,1d",
+    )
+    return parser.parse_args()
 
 if __name__ == '__main__':
+  args = parse_args()
   print(sys.version)
   start=datetime.now()
+  
   #df=GetTDXData_v3('002049.sz',500,'1d')
-  df=GetTDXData_v4(['002049.sz'],500,'5m')
+  df=GetTDXData_v4([args.ticker],5000,args.interval)
+  df.columns = [col[0].lower() for col in df.columns]
+  #df.reset_index(inplace=True)
+  df=df[['open','high','low','close','volume','amount']]
+  df.rename(columns={'index':'timestamps'}, inplace=True)
+  df.to_csv(f'data_{args.ticker}_{args.interval}.csv')
   print(len(df))
   print(df.tail(10))
   end=datetime.now()

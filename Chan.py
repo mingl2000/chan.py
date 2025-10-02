@@ -26,6 +26,7 @@ class CChan:
         lv_list=None,
         config=None,
         autype: AUTYPE = AUTYPE.QFQ,
+        name: str = '',
     ):
         if lv_list is None:
             lv_list = [KL_TYPE.K_DAY, KL_TYPE.K_60M]
@@ -34,6 +35,7 @@ class CChan:
         self.begin_time = str(begin_time) if isinstance(begin_time, datetime.date) else begin_time
         self.end_time = str(end_time) if isinstance(end_time, datetime.date) else end_time
         self.autype = autype
+        self.name = name
         self.data_src = data_src
         self.lv_list: List[KL_TYPE] = lv_list
 
