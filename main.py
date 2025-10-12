@@ -45,21 +45,14 @@ def get_code(ticker: str, inerval, source) -> str:
         ticker = 'sz' + '.' + ticker[:-3]
 
     return ticker,data_src
-if __name__ == "__main__":
-    argparser=argparse.ArgumentParser()
-    argparser.add_argument("--ticker",type=str,default="000001.ss")
-    argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
-    argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
-    argparser.add_argument("--name",type=str,default="车上", help='', required=False)
-    args=argparser.parse_args()
-    if args.name=="":
-        args.name=args.ticker    
-    code, data_src=get_code(args.ticker, args.interval,args.source)
+
+def main(ticker, interval, source, name,st=None):
+    code, data_src=get_code(ticker, interval,source)
     
     begin_time = "2000-01-01"
     end_time = None
     
-    lv_list = get_interval(args.interval)
+    lv_list = get_interval(interval)
     config = CChanConfig({
         "bi_strict": True,
         "trigger_step": False,
@@ -119,7 +112,7 @@ if __name__ == "__main__":
         lv_list=lv_list,
         config=config,
         autype=AUTYPE.QFQ,
-        name=args.name,
+        name=name,
     )
 
     if not config.trigger_step:
@@ -128,15 +121,34 @@ if __name__ == "__main__":
             plot_config=plot_config,
             plot_para=plot_para,
         )
-        plot_driver.figure.show()
-        plot_driver.save2img(f"./{args.ticker}_{args.interval}.png")
+        if st is None:
+            plot_driver.figure.show()
+        else:    
+            fig=plt.gcf()
+            st.pyplot(fig)
+        plot_driver.save2img(f"./{ticker}_{interval}.png")
     else:
         CAnimateDriver(
             chan,
             plot_config=plot_config,
             plot_para=plot_para,
         )
-    manager = plt.get_current_fig_manager()
-    manager.window.state('zoomed')
-    manager.set_window_title(args.ticker)
-    plt.show()
+    if st is None:
+        manager = plt.get_current_fig_manager()
+        manager.window.state('zoomed')
+        manager.set_window_title(args.ticker)
+        plt.show()
+    else:
+        pass
+        #fig=plt.gcf()
+        #st.pyplot(fig)
+if __name__ == "__main__":
+    argparser=argparse.ArgumentParser()
+    argparser.add_argument("--ticker",type=str,default="000001.ss")
+    argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
+    argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
+    argparser.add_argument("--name",type=str,default="车上", help='', required=False)
+    args=argparser.parse_args()
+    if args.name=="":
+        args.name=args.ticker    
+    main(args.ticker, args.interval,args.source, args.name)
