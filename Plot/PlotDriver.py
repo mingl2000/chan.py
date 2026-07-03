@@ -273,6 +273,8 @@ class CPlotDriver:
             self.draw_channel(meta, ax, **plot_para.get('channel', {}))
         if plot_config.get("plot_boll", False):
             self.draw_boll(meta, ax, **plot_para.get('boll', {}))
+        if plot_config.get("plot_elliott", False):
+            self.draw_elliott(meta, ax, **plot_para.get('elliott', {}))
         if plot_config.get("plot_bsp", False):
             self.draw_bs_point(meta, ax, **plot_para.get('bsp', {}))
         if plot_config.get("plot_segbsp", False):
@@ -542,6 +544,70 @@ class CPlotDriver:
             ax.add_patch(Rectangle((zs_meta.begin, zs_meta.low), zs_meta.w, zs_meta.h, fill=False, color=color, linewidth=linewidth, linestyle=line_style))
             for sub_zs_meta in zs_meta.sub_zs_lst:
                 ax.add_patch(Rectangle((sub_zs_meta.begin, sub_zs_meta.low), sub_zs_meta.w, sub_zs_meta.h, fill=False, color=color, linewidth=sub_linewidth, linestyle=line_style))
+
+    def draw_elliott(
+        self,
+        meta: CChanPlotMeta,
+        ax: Axes,
+        use_seg=True,
+        impulse_color='purple',
+        correction_color='teal',
+        fontsize=15,
+        only_sure=True,
+        show_fib=False,
+        fib_color='gray',
+    ):
+        """
+        在缠论线段(默认)或笔的骨架之上叠加艾略特波浪标注。
+        - 用线段/笔序列作为“波浪腿”，贪心地识别满足艾略特三条铁律的5浪推动结构，
+          其后若存在则标注3浪ABC调整结构。
+        - use_seg=True 用线段(主级别数浪)，False 用笔(更细子浪)。
+        - show_fib=True 在最近一段腿上叠加斐波那契回撤位，用于预测目标。
+        艾略特数浪本身存在多义性(扩展/变异/斜纹等)，此叠加给出的是“主计数+铁律校验”，
+        并非唯一解，仍需人工判断替代计数。
+        """
+        legs = meta.seg_list if use_seg else meta.bi_list
+        if only_sure:
+            legs = [lg for lg in legs if lg.is_sure]
+        if not legs:
+            return
+        x_begin = ax.get_xlim()[0]
+        # 把数浪锚定到可见窗口：只从与窗口相交的腿开始解析，避免把浪号“花”在远古历史上
+        vis = [i for i, lg in enumerate(legs) if lg.end_x >= x_begin]
+        if not vis:
+            return
+        start = vis[0]
+        sub = legs[start:]
+        label_map = {start + idx: (txt, kind) for idx, txt, kind in label_elliott_waves(sub)}
+        for i, lg in enumerate(legs):
+            if lg.end_x < x_begin or i not in label_map:
+                continue
+            txt, kind = label_map[i]
+            color = impulse_color if kind == 'impulse' else correction_color
+            up_end = lg.dir == BI_DIR.UP  # 该腿终点是高点
+            ax.text(
+                lg.end_x,
+                lg.end_y,
+                txt,
+                fontsize=fontsize,
+                color=color,
+                fontweight='bold',
+                verticalalignment='bottom' if up_end else 'top',
+                horizontalalignment='center',
+                bbox=dict(boxstyle='circle', facecolor='white', edgecolor=color, alpha=0.75, pad=0.25),
+                zorder=5,
+            )
+        if show_fib:
+            last = legs[-1]
+            lo, hi = min(last.begin_y, last.end_y), max(last.begin_y, last.end_y)
+            rng = hi - lo
+            if rng > 0:
+                x0 = max(last.begin_x, int(x_begin))
+                x1 = int(ax.get_xlim()[1])
+                for r in (0.236, 0.382, 0.5, 0.618, 0.786):
+                    y = hi - rng * r if last.dir == BI_DIR.UP else lo + rng * r
+                    ax.plot([x0, x1], [y, y], color=fib_color, linewidth=0.8, linestyle=':', zorder=1)
+                    ax.text(x1, y, f' {r:.3f} ({y:.1f})', fontsize=8, color=fib_color, verticalalignment='center')
 
     def draw_macd(self, meta: CChanPlotMeta, ax: Axes, x_limits, width=0.4):
         macd_lst = [klu.macd for klu in meta.klu_iter()]
@@ -833,6 +899,61 @@ class CPlotDriver:
 
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())
+
+
+def _leg_len(lg):
+    return abs(lg.end_y - lg.begin_y)
+
+
+def _is_impulse(five) -> bool:
+    """五条交替方向的腿是否构成合法艾略特推动浪(校验三条铁律)。"""
+    s = 1 if five[0].dir == BI_DIR.UP else -1  # 推动方向: +1向上 / -1向下
+    for k in range(4):  # 方向必须逐段交替
+        if five[k].dir == five[k + 1].dir:
+            return False
+    L1, L3, L5 = _leg_len(five[0]), _leg_len(five[2]), _leg_len(five[4])
+    # 铁律1: 第2浪回撤不超过第1浪起点
+    if s * five[1].end_y <= s * five[0].begin_y:
+        return False
+    # 铁律2: 第3浪不是1/3/5浪中最短的
+    if L3 < L1 and L3 < L5:
+        return False
+    # 铁律3: 第4浪不进入第1浪价格区间(严格推动,不含斜纹变异)
+    if s * five[3].end_y <= s * five[0].end_y:
+        return False
+    return True
+
+
+def _is_correction(three, prior_leg) -> bool:
+    """推动之后的三条交替腿是否可作为ABC调整(宽松校验)。"""
+    for k in range(2):
+        if three[k].dir == three[k + 1].dir:
+            return False
+    return three[0].dir != prior_leg.dir  # A浪应与前一推动腿反向
+
+
+def label_elliott_waves(legs):
+    """
+    在缠论腿(线段/笔)序列上贪心解析艾略特波浪。
+    返回 [(leg_idx, label, kind)]，kind ∈ {'impulse','correction'}。
+    识别出一个通过三条铁律的5浪推动后，紧随其后若存在则标注3浪ABC。
+    """
+    labels = []
+    imp = ['1', '2', '3', '4', '5']
+    cor = ['A', 'B', 'C']
+    i, n = 0, len(legs)
+    while i < n:
+        if i + 5 <= n and _is_impulse(legs[i:i + 5]):
+            for k in range(5):
+                labels.append((i + k, imp[k], 'impulse'))
+            i += 5
+            if i + 3 <= n and _is_correction(legs[i:i + 3], legs[i - 1]):
+                for k in range(3):
+                    labels.append((i + k, cor[k], 'correction'))
+                i += 3
+        else:
+            i += 1
+    return labels
 
 
 def plot_bi_element(bi: CBi_meta, ax: Axes, color: str):

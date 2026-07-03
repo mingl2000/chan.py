@@ -75,6 +75,7 @@ def main(ticker, interval, source, name,st=None):
         "plot_seg": True,
         "plot_eigen": False,
         "plot_zs": True,
+        "plot_elliott": True,
         "plot_macd": False,
         "plot_mean": False,
         "plot_channel": False,
@@ -93,6 +94,11 @@ def main(ticker, interval, source, name,st=None):
         "bi": {
             # "show_num": True,
             # "disp_end": True,
+        },
+        "elliott": {
+            # False=用笔数浪(适合较窄窗口,如x_range=400), True=用线段数更高级别主浪(需更宽窗口才够5浪)
+            "use_seg": False,
+            "show_fib": False,  # True=在最近一段腿上叠加斐波那契回撤位以预测目标
         },
         "figure": {
             "x_range": 400,
