@@ -95,7 +95,7 @@ def main(ticker, interval, source, name,st=None):
             # "disp_end": True,
         },
         "figure": {
-            "x_range": 200,
+            "x_range": 400,
         },
         "marker": {
             # "markers": {  # text, position, color

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import ScalarFormatter
 
 from Chan import CChan
 from Common.CEnum import BI_DIR, FX_TYPE, KL_TYPE, KLINE_DIR, TREND_TYPE
@@ -90,7 +91,7 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         - Figure
         - Dict[KL_TYPE, List[Axes]]: 如果Axes长度为1, 说明不需要画macd, 否则需要
     """
-    default_w, default_h = 24, 10
+    default_w, default_h = 34, 10
     macd_h_ration = figure_config.get('macd_h', 0.3)
     w = figure_config.get('w', default_w)
     h = figure_config.get('h', default_h)
@@ -111,9 +112,10 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         sub_pic_cnt,
         1,
         figsize=(w, total_h),
-        gridspec_kw={'height_ratios': gridspec_kw}
+        gridspec_kw={'height_ratios': gridspec_kw},
+        dpi=200
     )
-    plt.subplots_adjust(left=0.02, right=0.97, top=0.97, bottom=0.05, hspace=0.2)
+    plt.subplots_adjust(left=0.04, right=0.97, top=0.97, bottom=0.05, hspace=0.2)
     try:
         axes[0]
     except Exception:  # 只有一个级别，且不需要画macd
@@ -205,6 +207,10 @@ class CPlotDriver:
                     srange_begin = meta.sub_range_start_idx(x_range)
 
             ax.set_ylim(self.y_min, self.y_max)
+            # 保证y轴价格完整显示所有位数（如指数4位/5位数），禁用科学计数法与偏移量
+            y_fmt = ScalarFormatter(useOffset=False)
+            y_fmt.set_scientific(False)
+            ax.yaxis.set_major_formatter(y_fmt)
 
     def GetRealXrange(self, figure_config, meta: CChanPlotMeta):
         x_range = figure_config.get("x_range", 0)
@@ -351,7 +357,7 @@ class CPlotDriver:
         lv,
         color='black',
         show_num=False,
-        num_fontsize=15,
+        num_fontsize=10,
         num_color="red",
         sub_lv_cnt=None,
         facecolor='green',
@@ -384,7 +390,7 @@ class CPlotDriver:
         meta: CChanPlotMeta,
         ax: Axes,
         lv,
-        width=5,
+        width=2,
         color="g",
         sub_lv_cnt=None,
         facecolor='green',
@@ -396,7 +402,7 @@ class CPlotDriver:
         trendline_color='r',
         trendline_width=3,
         show_num=False,
-        num_fontsize=25,
+        num_fontsize=10,
         num_color="blue",
     ):
         x_begin = ax.get_xlim()[0]

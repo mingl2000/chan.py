@@ -1,0 +1,1 @@
+START /B cmd /c python  .\main.py --ticker 880823.ss --interval 5m --name 小盘股
