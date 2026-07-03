@@ -3,6 +3,7 @@ from ChanConfig import CChanConfig
 from Common.CEnum import AUTYPE, DATA_SRC, KL_TYPE
 from Plot.AnimatePlotDriver import CAnimateDriver
 from Plot.PlotDriver import CPlotDriver
+from ElliottWave import validate_fractal, format_fractal_report
 import matplotlib.pyplot as plt
 import argparse
 
@@ -64,8 +65,11 @@ def main(ticker, interval, source, name,st=None):
         "bs1_peak": False,
         "macd_algo": "peak",
         "bs_type": '1,2,3a,1p,2s,3b',
-        "print_warning": True,
+        "print_warning": False,
         "zs_algo": "normal",
+        # 多级别时高/低级别历史长度常不一致(如TDX日线很长、分钟线仅数百根)，
+        # 关闭对齐检查避免因老K线在次级别找不到子K线而报错；分形校验只在有重叠的区间生效。
+        "kl_data_check": False,
     })
 
     plot_config = {
@@ -120,6 +124,11 @@ def main(ticker, interval, source, name,st=None):
         autype=AUTYPE.QFQ,
         name=name,
     )
+
+    # 传入多级别(如 --interval 1d,15m)时，做跨周期艾略特分形校验并打印报告
+    if len(lv_list) >= 2:
+        rows = validate_fractal(chan, high_idx=0, low_idx=1)
+        print(format_fractal_report(rows, high_name=lv_list[0].name.split('K_')[1], low_name=lv_list[1].name.split('K_')[1]))
 
     if not config.trigger_step:
         plot_driver = CPlotDriver(

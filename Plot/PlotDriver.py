@@ -14,6 +14,7 @@ from Common.CTime import CTime
 from Math.Demark import T_DEMARK_INDEX, CDemarkEngine
 
 from .PlotMeta import CBi_meta, CChanPlotMeta, CZS_meta
+from ElliottWave import label_elliott_waves
 from matplotlib import rcParams
 rcParams['font.sans-serif'] = ['Microsoft YaHei']   # or ['SimHei']
 rcParams['axes.unicode_minus'] = False              # Fix for minus sign
@@ -899,61 +900,6 @@ class CPlotDriver:
 
 def getTextBox(ax: Axes, txt_instance):
     return txt_instance.get_window_extent().transformed(ax.transData.inverted())
-
-
-def _leg_len(lg):
-    return abs(lg.end_y - lg.begin_y)
-
-
-def _is_impulse(five) -> bool:
-    """五条交替方向的腿是否构成合法艾略特推动浪(校验三条铁律)。"""
-    s = 1 if five[0].dir == BI_DIR.UP else -1  # 推动方向: +1向上 / -1向下
-    for k in range(4):  # 方向必须逐段交替
-        if five[k].dir == five[k + 1].dir:
-            return False
-    L1, L3, L5 = _leg_len(five[0]), _leg_len(five[2]), _leg_len(five[4])
-    # 铁律1: 第2浪回撤不超过第1浪起点
-    if s * five[1].end_y <= s * five[0].begin_y:
-        return False
-    # 铁律2: 第3浪不是1/3/5浪中最短的
-    if L3 < L1 and L3 < L5:
-        return False
-    # 铁律3: 第4浪不进入第1浪价格区间(严格推动,不含斜纹变异)
-    if s * five[3].end_y <= s * five[0].end_y:
-        return False
-    return True
-
-
-def _is_correction(three, prior_leg) -> bool:
-    """推动之后的三条交替腿是否可作为ABC调整(宽松校验)。"""
-    for k in range(2):
-        if three[k].dir == three[k + 1].dir:
-            return False
-    return three[0].dir != prior_leg.dir  # A浪应与前一推动腿反向
-
-
-def label_elliott_waves(legs):
-    """
-    在缠论腿(线段/笔)序列上贪心解析艾略特波浪。
-    返回 [(leg_idx, label, kind)]，kind ∈ {'impulse','correction'}。
-    识别出一个通过三条铁律的5浪推动后，紧随其后若存在则标注3浪ABC。
-    """
-    labels = []
-    imp = ['1', '2', '3', '4', '5']
-    cor = ['A', 'B', 'C']
-    i, n = 0, len(legs)
-    while i < n:
-        if i + 5 <= n and _is_impulse(legs[i:i + 5]):
-            for k in range(5):
-                labels.append((i + k, imp[k], 'impulse'))
-            i += 5
-            if i + 3 <= n and _is_correction(legs[i:i + 3], legs[i - 1]):
-                for k in range(3):
-                    labels.append((i + k, cor[k], 'correction'))
-                i += 3
-        else:
-            i += 1
-    return labels
 
 
 def plot_bi_element(bi: CBi_meta, ax: Axes, color: str):

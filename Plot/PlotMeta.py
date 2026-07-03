@@ -153,18 +153,20 @@ class CChanPlotMeta:
         if seg_cnt is None or len(self.data.seg_list) <= seg_cnt:
             return 0
         else:
-            return self.data.seg_list[-seg_cnt].get_begin_klu().sub_kl_list[0].idx
+            sub_lst = self.data.seg_list[-seg_cnt].get_begin_klu().sub_kl_list
+            return sub_lst[0].idx if sub_lst else 0  # 次级别数据缺失(历史不重叠)时返回0
 
     def sub_last_kbi_start_idx(self, bi_cnt):
         if bi_cnt is None or len(self.data.bi_list) <= bi_cnt:
             return 0
         else:
-            return self.data.bi_list[-bi_cnt].begin_klc.lst[0].sub_kl_list[0].idx
+            sub_lst = self.data.bi_list[-bi_cnt].begin_klc.lst[0].sub_kl_list
+            return sub_lst[0].idx if sub_lst else 0
 
     def sub_range_start_idx(self, x_range):
         for klc in self.data[::-1]:
             for klu in klc[::-1]:
                 x_range -= 1
                 if x_range == 0:
-                    return klu.sub_kl_list[0].idx
+                    return klu.sub_kl_list[0].idx if klu.sub_kl_list else 0
         return 0
