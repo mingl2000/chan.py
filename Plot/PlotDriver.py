@@ -546,67 +546,52 @@ class CPlotDriver:
             for sub_zs_meta in zs_meta.sub_zs_lst:
                 ax.add_patch(Rectangle((sub_zs_meta.begin, sub_zs_meta.low), sub_zs_meta.w, sub_zs_meta.h, fill=False, color=color, linewidth=sub_linewidth, linestyle=line_style))
 
+    # 各浪级(degree)的艾略特记号约定：从低到高分别用 朴素数字 / 括号 / 圆圈，字号递增、颜色区分
+    ELLIOTT_NOTATION = {
+        'bi': dict(  # 笔 → 次级(Minor)
+            imp=['1', '2', '3', '4', '5'], cor=['A', 'B', 'C'],
+            fontsize=13, imp_c='#7a00cc', cor_c='#008b8b', bbox=True, offset=0.0),
+        'seg': dict(  # 线段 → 中级(Intermediate)
+            imp=['(1)', '(2)', '(3)', '(4)', '(5)'], cor=['(A)', '(B)', '(C)'],
+            fontsize=17, imp_c='#b30000', cor_c='#1b6b1b', bbox=True, offset=0.07),
+        'segseg': dict(  # 段中段 → 主级(Primary)
+            imp=['①', '②', '③', '④', '⑤'], cor=['Ⓐ', 'Ⓑ', 'Ⓒ'],
+            fontsize=22, imp_c='black', cor_c='#00008b', bbox=True, offset=0.15),
+    }
+
     def draw_elliott(
         self,
         meta: CChanPlotMeta,
         ax: Axes,
-        use_seg=True,
-        impulse_color='purple',
-        correction_color='teal',
-        fontsize=15,
+        degrees=('bi', 'seg'),
         only_sure=True,
         show_fib=False,
         fib_color='gray',
-        allow_diagonal=False,
+        allow_diagonal=True,
     ):
         """
-        在缠论线段(默认)或笔的骨架之上叠加艾略特波浪标注。
-        - 用线段/笔序列作为“波浪腿”，贪心地识别满足艾略特铁律的5浪推动结构，
-          其后若存在则标注3浪ABC调整结构。
-        - use_seg=True 用线段(主级别数浪)，False 用笔(更细子浪)。
-        - show_fib=True 在最近一段腿上叠加斐波那契回撤位，用于预测目标。
-        - allow_diagonal=True 表示“回退斜纹模式”：先按严格铁律数浪，若可见窗口内数不出任何浪，
-          再放宽铁律3(允许斜纹重叠)重试。这样日线等清晰趋势保持严格计数，分钟级等震荡数据也能出浪。
-          置False则始终严格。数据太少(笔<~10)时任何级别都可能无标注(需更深历史,如yahoo源)。
-        艾略特数浪本身存在多义性(扩展/变异/斜纹等)，此叠加给出的是“主计数+铁律校验”，
-        并非唯一解，仍需人工判断替代计数。
+        在缠论骨架上叠加【多浪级(degree)】的艾略特波浪标注，体现分形自相似：
+        低级别的5浪合成高级别的1浪。各级用不同记号区分(见 ELLIOTT_NOTATION)：
+          - 'bi'     笔    → 次级Minor:        1 2 3 4 5 / A B C   (朴素小字)
+          - 'seg'    线段  → 中级Intermediate: (1)(2)(3)(4)(5)/(A)(B)(C)
+          - 'segseg' 段中段→ 主级Primary:      ①②③④⑤ / ⒶⒷⒸ   (圆圈大字)
+        degrees 指定要画哪些浪级(默认 笔+线段两级)。
+        - show_fib=True 在最近一段(笔)上叠加斐波那契回撤位。
+        - allow_diagonal=True 表示“回退斜纹模式”：某级别严格数不出浪时放宽铁律3重试
+          (日线等清晰趋势保持严格，分钟级等震荡数据也能出浪)。
+        艾略特数浪本身多义(扩展/变异/斜纹等)，此叠加是“主计数+铁律校验”，非唯一解。
         """
-        legs = meta.seg_list if use_seg else meta.bi_list
-        if only_sure:
-            legs = [lg for lg in legs if lg.is_sure]
-        if not legs:
-            return
+        level_map = {'bi': meta.bi_list, 'seg': meta.seg_list, 'segseg': meta.segseg_list}
         x_begin = ax.get_xlim()[0]
-        # 把数浪锚定到可见窗口：只从与窗口相交的腿开始解析，避免把浪号“花”在远古历史上
-        vis = [i for i, lg in enumerate(legs) if lg.end_x >= x_begin]
-        if not vis:
-            return
-        start = vis[0]
-        sub = legs[start:]
-        labels = label_elliott_waves(sub, allow_diagonal=False)  # 先严格数浪
-        if not labels and allow_diagonal:                        # 严格数不出则回退斜纹模式
-            labels = label_elliott_waves(sub, allow_diagonal=True)
-        label_map = {start + idx: (txt, kind) for idx, txt, kind in labels}
-        for i, lg in enumerate(legs):
-            if lg.end_x < x_begin or i not in label_map:
+        for deg in degrees:
+            legs = level_map.get(deg)
+            if not legs or deg not in self.ELLIOTT_NOTATION:
                 continue
-            txt, kind = label_map[i]
-            color = impulse_color if kind == 'impulse' else correction_color
-            up_end = lg.dir == BI_DIR.UP  # 该腿终点是高点
-            ax.text(
-                lg.end_x,
-                lg.end_y,
-                txt,
-                fontsize=fontsize,
-                color=color,
-                fontweight='bold',
-                verticalalignment='bottom' if up_end else 'top',
-                horizontalalignment='center',
-                bbox=dict(boxstyle='circle', facecolor='white', edgecolor=color, alpha=0.75, pad=0.25),
-                zorder=5,
-            )
-        if show_fib:
-            last = legs[-1]
+            if only_sure:
+                legs = [lg for lg in legs if lg.is_sure]
+            self._draw_wave_degree(ax, legs, x_begin, self.ELLIOTT_NOTATION[deg], allow_diagonal)
+        if show_fib and meta.bi_list:
+            last = meta.bi_list[-1]
             lo, hi = min(last.begin_y, last.end_y), max(last.begin_y, last.end_y)
             rng = hi - lo
             if rng > 0:
@@ -616,6 +601,48 @@ class CPlotDriver:
                     y = hi - rng * r if last.dir == BI_DIR.UP else lo + rng * r
                     ax.plot([x0, x1], [y, y], color=fib_color, linewidth=0.8, linestyle=':', zorder=1)
                     ax.text(x1, y, f' {r:.3f} ({y:.1f})', fontsize=8, color=fib_color, verticalalignment='center')
+
+    def _draw_wave_degree(self, ax: Axes, legs, x_begin, nota, allow_diagonal):
+        """在单一浪级的腿序列上数浪并按 nota 记号绘制(含可见窗口锚定与斜纹回退)。"""
+        if not legs:
+            return
+        vis = [i for i, lg in enumerate(legs) if lg.end_x >= x_begin]
+        if not vis:
+            return
+        # 腿多(如笔)时锚定到可见窗口,保证近端标注可靠;腿少(如线段/段中段,结构跨度大)时全量数浪,
+        # 使跨越窗口左边界的高浪级也能画出露在窗口内的后半段(4/5浪)。仅绘制 end_x>=x_begin 的标注。
+        start = 0 if len(legs) <= 60 else vis[0]
+        sub = legs[start:]
+        labels = label_elliott_waves(sub, allow_diagonal=False)
+        if not labels and allow_diagonal:
+            labels = label_elliott_waves(sub, allow_diagonal=True)
+        if not labels:
+            return
+        remap = {'1': nota['imp'][0], '2': nota['imp'][1], '3': nota['imp'][2],
+                 '4': nota['imp'][3], '5': nota['imp'][4],
+                 'A': nota['cor'][0], 'B': nota['cor'][1], 'C': nota['cor'][2]}
+        label_map = {start + idx: (remap[txt], kind) for idx, txt, kind in labels}
+        y0, y1 = ax.get_ylim()
+        y_off = nota['offset'] * (y1 - y0)  # 高浪级向外偏移，避免与低浪级标注重叠
+        for i, lg in enumerate(legs):
+            if lg.end_x < x_begin or i not in label_map:
+                continue
+            txt, kind = label_map[i]
+            color = nota['imp_c'] if kind == 'impulse' else nota['cor_c']
+            up_end = lg.dir == BI_DIR.UP  # 终点是高点
+            bbox = dict(boxstyle='circle', facecolor='white', edgecolor=color, alpha=0.8, pad=0.2) if nota['bbox'] else None
+            ax.text(
+                lg.end_x,
+                lg.end_y + (y_off if up_end else -y_off),
+                txt,
+                fontsize=nota['fontsize'],
+                color=color,
+                fontweight='bold',
+                verticalalignment='bottom' if up_end else 'top',
+                horizontalalignment='center',
+                bbox=bbox,
+                zorder=6,
+            )
 
     def draw_macd(self, meta: CChanPlotMeta, ax: Axes, x_limits, width=0.4):
         macd_lst = [klu.macd for klu in meta.klu_iter()]

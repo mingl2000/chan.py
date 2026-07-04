@@ -43,6 +43,8 @@ def parse_time_column(inp):
 
 
 class TDX_API(CCommonStockApi):
+    bars = 500  # 拉取的K线根数(分钟级实际拉取的5m根数)，可由 main.py 的 --bars 覆盖
+
     def __init__(self, code, k_type=KL_TYPE.K_DAY, begin_date=None, end_date=None, autype=None):
         self.headers_exist = True  # 第一行是否是标题，如果是数据，设置为False
         self.columns = [
@@ -76,18 +78,18 @@ class TDX_API(CCommonStockApi):
         
         interval=self.get_interval()
         if interval in ['60m','30m','15m','5m']:
-            df=GetTDXData_v4([self.code,],500,'5m')
+            df=GetTDXData_v4([self.code,],self.bars,'5m')
             df.columns=['Open','High','Low','Close','Amount','Volume','Vwap']
             df=df[['Open','High','Low','Close']]
-            
+
             if interval!='5m':
                 df = df.resample('15Min').ohlc()
                 df=df[[('Open','open'),('High','high'),('Low','low'),('Close','close')]]
                 df.columns=['Open','High','Low','Close']
                 print(df.tail(5))
-                
+
         else:
-            df=GetTDXData_v4([self.code,],500,interval)
+            df=GetTDXData_v4([self.code,],self.bars,interval)
             df.columns=['Open','High','Low','Close','Amount','Volume','Vwap']
             df=df[['Open','High','Low','Close']]
         print(f"download {self.code} from {df.index[0]} to {df.index[-1]} by {self.get_interval()}")

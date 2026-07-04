@@ -47,9 +47,14 @@ def get_code(ticker: str, inerval, source) -> str:
 
     return ticker,data_src
 
-def main(ticker, interval, source, name,st=None):
+def main(ticker, interval, source, name,st=None,bars=500,x_range=400):
     code, data_src=get_code(ticker, interval,source)
-    
+
+    # TDX数据源拉取的K线根数(硬编码500根的替代)，仅对tdx源生效
+    if source == "tdx":
+        from DataAPI.TDXAPI import TDX_API
+        TDX_API.bars = bars
+
     begin_time = "2000-01-01"
     end_time = None
     
@@ -100,13 +105,13 @@ def main(ticker, interval, source, name,st=None):
             # "disp_end": True,
         },
         "elliott": {
-            # False=用笔数浪(适合较窄窗口,如x_range=400), True=用线段数更高级别主浪(需更宽窗口才够5浪)
-            "use_seg": False,
+            # 要标注的浪级(degree): 'bi'=笔/次级Minor, 'seg'=线段/中级Intermediate, 'segseg'=段中段/主级Primary
+            "degrees": ("bi", "seg"),
             "show_fib": False,       # True=在最近一段腿上叠加斐波那契回撤位以预测目标
             "allow_diagonal": True,  # True=严格数不出浪时回退斜纹模式(日线保持严格,分钟级也能出浪); False=始终严格
         },
         "figure": {
-            "x_range": 400,
+            "x_range": x_range,
         },
         "marker": {
             # "markers": {  # text, position, color
@@ -164,7 +169,9 @@ if __name__ == "__main__":
     argparser.add_argument("--interval",type=str,default="15m", help='1m,5m,15m,30m,60m,1d,1wk,1mo,3mo')
     argparser.add_argument("--source",type=str,default="tdx", help='tdx,yahoo,baostock')
     argparser.add_argument("--name",type=str,default="车上", help='', required=False)
+    argparser.add_argument("--bars",type=int,default=500, help='TDX数据源拉取的K线根数(分钟级为5m根数),默认500', required=False)
+    argparser.add_argument("--xrange",type=int,default=400, help='图上显示的K线根数(窗口宽度),默认400。加大以显示更长历史/更高浪级', required=False)
     args=argparser.parse_args()
     if args.name=="":
-        args.name=args.ticker    
-    main(args.ticker, args.interval,args.source, args.name)
+        args.name=args.ticker
+    main(args.ticker, args.interval,args.source, args.name, bars=args.bars, x_range=args.xrange)
