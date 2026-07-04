@@ -47,7 +47,7 @@ def get_code(ticker: str, inerval, source) -> str:
 
     return ticker,data_src
 
-def main(ticker, interval, source, name,st=None,bars=500,x_range=400):
+def main(ticker, interval, source, name,st=None,bars=500,x_range=400,elliott=True):
     code, data_src=get_code(ticker, interval,source)
 
     # TDX数据源拉取的K线根数(硬编码500根的替代)，仅对tdx源生效
@@ -84,7 +84,7 @@ def main(ticker, interval, source, name,st=None,bars=500,x_range=400):
         "plot_seg": True,
         "plot_eigen": False,
         "plot_zs": True,
-        "plot_elliott": True,
+        "plot_elliott": elliott,
         "plot_macd": False,
         "plot_mean": False,
         "plot_channel": False,
@@ -171,7 +171,8 @@ if __name__ == "__main__":
     argparser.add_argument("--name",type=str,default="车上", help='', required=False)
     argparser.add_argument("--bars",type=int,default=500, help='TDX数据源拉取的K线根数(分钟级为5m根数),默认500', required=False)
     argparser.add_argument("--xrange",type=int,default=400, help='图上显示的K线根数(窗口宽度),默认400。加大以显示更长历史/更高浪级', required=False)
+    argparser.add_argument("--elliott",action=argparse.BooleanOptionalAction,default=True, help='是否叠加艾略特波浪标注(--elliott/--no-elliott),默认开启')
     args=argparser.parse_args()
     if args.name=="":
         args.name=args.ticker
-    main(args.ticker, args.interval,args.source, args.name, bars=args.bars, x_range=args.xrange)
+    main(args.ticker, args.interval,args.source, args.name, bars=args.bars, x_range=args.xrange, elliott=args.elliott)
