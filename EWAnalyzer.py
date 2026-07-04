@@ -498,40 +498,70 @@ def _zigzag(H, L, xb, xe, k):
     return seq
 
 
-def _analyze_major(H, L, xb, xe, up_to):
-    """在窗口主要枢轴的zigzag上找【主级(最大)】5浪推动(+其后ABC)，把索引映射回原始K线x。"""
+def _tile(H, L, D, up_to, los, his, end_bound, full):
+    """
+    从锚点(los上行/his下行)搜索合法5浪推动，贪心选互不重叠、跨度最大的一组铺满区间，
+    相邻推动之间填ABC调整。返回段列表(points/origin的idx为H/L/D的索引空间)。
+    """
+    cands = []  # (start, end, points, direction)
+    for a in los:
+        f = _best_impulse_from(H, L, D, a, up_to, down=False, full=full)
+        if f:
+            cands.append((a, f[1], f[0], "up"))
+    for a in his:
+        f = _best_impulse_from(H, L, D, a, up_to, down=True, full=full)
+        if f:
+            cands.append((a, f[1], f[0], "down"))
+    if not cands:
+        return []
+    cands.sort(key=lambda c: c[1] - c[0], reverse=True)
+    chosen, occ = [], []
+    for c in cands:
+        s, e = c[0], c[1]
+        if any(not (e <= os or s >= oe) for os, oe in occ):
+            continue
+        chosen.append(c)
+        occ.append((s, e))
+    chosen.sort(key=lambda c: c[0])
+
+    segs = []
+    for i, (s, e, pts, dirn) in enumerate(chosen):
+        origin = (s, L[s] if dirn == "up" else H[s], dirn == "down")
+        segs.append({"kind": "impulse", "points": pts, "origin": origin})
+        nxt = chosen[i + 1][0] if i + 1 < len(chosen) else end_bound
+        f = _best_correction_from(H, L, D, e, up_to, corr_down=(dirn == "up"), full=full)
+        if f and f[1] <= nxt:
+            segs.append({"kind": "correction", "points": f[0]})
+    return segs
+
+
+def _remap_segs(segs, seq):
+    """把zigzag索引空间的段映射回原始K线x索引。"""
+    def rp(pl):
+        return [(seq[ri][0], price, peak, lab) for (ri, price, peak, lab) in pl]
+    out = []
+    for s in segs:
+        m = {"kind": s["kind"], "points": rp(s["points"])}
+        if "origin" in s:
+            oi, oprice, opeak = s["origin"]
+            m["origin"] = (seq[oi][0], oprice, opeak)
+        out.append(m)
+    return out
+
+
+def _analyze_major(H, L, xb, xe, up_to, anchor_cap=12):
+    """在窗口主要枢轴的zigzag上【平铺】主级5浪推动(+ABC)，铺满整个窗口，再映射回原始x。"""
     k = max(4, (xe - xb) // 40)              # 枢轴粒度随窗口大小自适应
     seq = _zigzag(H, L, xb, xe, k)
     if len(seq) < 6:
         return []
     prices = [p for _, _, p in seq]
     Ds = list(range(len(seq)))               # 以zigzag位置为“K线”(高=低=枢轴价)
-    lo_r = min(range(len(seq)), key=lambda i: prices[i])
-    hi_r = max(range(len(seq)), key=lambda i: prices[i])
-
-    up_to_major = max(up_to, 6)              # 主级需较大skip合并大量次级回撤
-    best = None                              # (span, pts, end, inverted, anchor)
-    for anchor, down in [(lo_r, False), (hi_r, True)]:
-        # full=True: 用全量组合(允许如[0,2,3,0,0])，枢轴少所以仍然很快
-        f = _best_impulse_from(prices, prices, Ds, anchor, up_to_major, down, full=True)
-        if f:
-            pts, end = f
-            span = end - anchor
-            if best is None or span > best[0]:
-                best = (span, pts, end, down, anchor)
-    if best is None:
-        return []
-    _span, pts, end, inverted, anchor = best
-
-    def remap(pl):
-        return [(seq[ri][0], price, peak, lab) for (ri, price, peak, lab) in pl]
-
-    origin = (seq[anchor][0], prices[anchor], inverted)  # 下行时起点为高点(is_peak=True)
-    segs = [{"kind": "impulse", "points": remap(pts), "origin": origin}]
-    corr = _best_correction_from(prices, prices, Ds, end, up_to_major, corr_down=not inverted, full=True)
-    if corr:
-        segs.append({"kind": "correction", "points": remap(corr[0])})
-    return segs
+    los = _cap([i for i, (_, t, _) in enumerate(seq) if t == 'L'], anchor_cap)
+    his = _cap([i for i, (_, t, _) in enumerate(seq) if t == 'H'], anchor_cap)
+    up_to_major = max(up_to, 6)              # 主级需较大skip合并大量次级回撤；full=True全量组合
+    segs = _tile(prices, prices, Ds, up_to_major, los, his, len(seq) - 1, full=True)
+    return _remap_segs(segs, seq)
 
 
 def analyze_window(highs, lows, dates, x_begin, x_end, up_to=4, anchor_cap=10, max_seg=12):
@@ -553,40 +583,8 @@ def analyze_window(highs, lows, dates, x_begin, x_end, up_to=4, anchor_cap=10, m
     los, his = _pivots(H, L, xb, xe)
     los, his = _cap(los, anchor_cap), _cap(his, anchor_cap)
 
-    cands = []  # (start, end, points, direction)
-    for a in los:
-        f = _best_impulse_from(H, L, D, a, up_to, down=False)
-        if f:
-            cands.append((a, f[1], f[0], "up"))
-    for a in his:
-        f = _best_impulse_from(H, L, D, a, up_to, down=True)
-        if f:
-            cands.append((a, f[1], f[0], "down"))
-    if not cands:
+    minor = _tile(H, L, D, up_to, los, his, xe, full=False)     # 次级：原始K线上平铺小浪
+    major = _analyze_major(H, L, xb, xe, up_to)                  # 主级：zigzag上平铺大浪
+    if not minor and not major:
         return None
-
-    # 贪心：按跨度从大到小选互不重叠的推动
-    cands.sort(key=lambda c: c[1] - c[0], reverse=True)
-    chosen, occ = [], []
-    for c in cands:
-        s, e = c[0], c[1]
-        if any(not (e <= os or s >= oe) for os, oe in occ):
-            continue
-        chosen.append(c)
-        occ.append((s, e))
-    chosen.sort(key=lambda c: c[0])
-
-    # 组装段：推动 + 相邻推动之间尝试填ABC调整
-    segments = []
-    for i, (s, e, pts, dirn) in enumerate(chosen):
-        origin = (s, L[s] if dirn == "up" else H[s], dirn == "down")
-        segments.append({"kind": "impulse", "points": pts, "origin": origin})
-        nxt_start = chosen[i + 1][0] if i + 1 < len(chosen) else xe
-        f = _best_correction_from(H, L, D, e, up_to, corr_down=(dirn == "up"))
-        if f and f[1] <= nxt_start:
-            segments.append({"kind": "correction", "points": f[0]})
-
-    major = _analyze_major(H, L, xb, xe, up_to)
-    if not segments and not major:
-        return None
-    return {"minor": segments, "major": major}
+    return {"minor": minor, "major": major}
