@@ -102,7 +102,8 @@ def main(ticker, interval, source, name,st=None):
         "elliott": {
             # False=用笔数浪(适合较窄窗口,如x_range=400), True=用线段数更高级别主浪(需更宽窗口才够5浪)
             "use_seg": False,
-            "show_fib": False,  # True=在最近一段腿上叠加斐波那契回撤位以预测目标
+            "show_fib": False,       # True=在最近一段腿上叠加斐波那契回撤位以预测目标
+            "allow_diagonal": True,  # True=严格数不出浪时回退斜纹模式(日线保持严格,分钟级也能出浪); False=始终严格
         },
         "figure": {
             "x_range": 400,

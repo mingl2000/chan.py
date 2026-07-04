@@ -557,13 +557,17 @@ class CPlotDriver:
         only_sure=True,
         show_fib=False,
         fib_color='gray',
+        allow_diagonal=False,
     ):
         """
         在缠论线段(默认)或笔的骨架之上叠加艾略特波浪标注。
-        - 用线段/笔序列作为“波浪腿”，贪心地识别满足艾略特三条铁律的5浪推动结构，
+        - 用线段/笔序列作为“波浪腿”，贪心地识别满足艾略特铁律的5浪推动结构，
           其后若存在则标注3浪ABC调整结构。
         - use_seg=True 用线段(主级别数浪)，False 用笔(更细子浪)。
         - show_fib=True 在最近一段腿上叠加斐波那契回撤位，用于预测目标。
+        - allow_diagonal=True 表示“回退斜纹模式”：先按严格铁律数浪，若可见窗口内数不出任何浪，
+          再放宽铁律3(允许斜纹重叠)重试。这样日线等清晰趋势保持严格计数，分钟级等震荡数据也能出浪。
+          置False则始终严格。数据太少(笔<~10)时任何级别都可能无标注(需更深历史,如yahoo源)。
         艾略特数浪本身存在多义性(扩展/变异/斜纹等)，此叠加给出的是“主计数+铁律校验”，
         并非唯一解，仍需人工判断替代计数。
         """
@@ -579,7 +583,10 @@ class CPlotDriver:
             return
         start = vis[0]
         sub = legs[start:]
-        label_map = {start + idx: (txt, kind) for idx, txt, kind in label_elliott_waves(sub)}
+        labels = label_elliott_waves(sub, allow_diagonal=False)  # 先严格数浪
+        if not labels and allow_diagonal:                        # 严格数不出则回退斜纹模式
+            labels = label_elliott_waves(sub, allow_diagonal=True)
+        label_map = {start + idx: (txt, kind) for idx, txt, kind in labels}
         for i, lg in enumerate(legs):
             if lg.end_x < x_begin or i not in label_map:
                 continue

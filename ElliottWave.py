@@ -23,8 +23,13 @@ def _leg_len(lg):
     return abs(lg.end_y - lg.begin_y)
 
 
-def _is_impulse(five) -> bool:
-    """五条交替方向的腿是否构成合法艾略特推动浪(校验三条铁律)。"""
+def _is_impulse(five, allow_diagonal=False) -> bool:
+    """
+    五条交替方向的腿是否构成合法艾略特推动浪。
+    allow_diagonal=False: 严格推动，校验三条铁律(适合日线等清晰趋势)。
+    allow_diagonal=True : 放宽铁律3(允许第4浪与第1浪重叠)，即容许斜纹/引导斜纹，
+                          适合分钟级等重叠较多的震荡数据，否则常常一个浪都数不出来。
+    """
     s = 1 if five[0].dir == BI_DIR.UP else -1  # 推动方向: +1向上 / -1向下
     for k in range(4):  # 方向必须逐段交替
         if five[k].dir == five[k + 1].dir:
@@ -36,8 +41,8 @@ def _is_impulse(five) -> bool:
     # 铁律2: 第3浪不是1/3/5浪中最短的
     if L3 < L1 and L3 < L5:
         return False
-    # 铁律3: 第4浪不进入第1浪价格区间(严格推动,不含斜纹变异)
-    if s * five[3].end_y <= s * five[0].end_y:
+    # 铁律3: 第4浪不进入第1浪价格区间(严格推动)；斜纹模式下放宽
+    if not allow_diagonal and s * five[3].end_y <= s * five[0].end_y:
         return False
     return True
 
@@ -50,18 +55,19 @@ def _is_correction(three, prior_leg) -> bool:
     return three[0].dir != prior_leg.dir  # A浪应与前一推动腿反向
 
 
-def label_elliott_waves(legs):
+def label_elliott_waves(legs, allow_diagonal=False):
     """
     在缠论腿(线段/笔)序列上贪心解析艾略特波浪。
     返回 [(leg_idx, label, kind)]，kind ∈ {'impulse','correction'}。
-    识别出一个通过三条铁律的5浪推动后，紧随其后若存在则标注3浪ABC。
+    识别出一个通过铁律的5浪推动后，紧随其后若存在则标注3浪ABC。
+    allow_diagonal 见 _is_impulse：分钟级等震荡数据建议置True，否则常数不出浪。
     """
     labels = []
     imp = ['1', '2', '3', '4', '5']
     cor = ['A', 'B', 'C']
     i, n = 0, len(legs)
     while i < n:
-        if i + 5 <= n and _is_impulse(legs[i:i + 5]):
+        if i + 5 <= n and _is_impulse(legs[i:i + 5], allow_diagonal):
             for k in range(5):
                 labels.append((i + k, imp[k], 'impulse'))
             i += 5
