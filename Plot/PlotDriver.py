@@ -575,19 +575,13 @@ class CPlotDriver:
             highs[klu.idx] = klu.high
             lows[klu.idx] = klu.low
         x_begin, x_end = ax.get_xlim()
-        res = analyze_window(highs, lows, meta.datetick, x_begin, x_end, up_to=up_to)
+        res = analyze_window(highs, lows, meta.datetick, x_begin, x_end, up_to=up_to, want_minor=False)
         if res is None:
             return
-        y0, y1 = ax.get_ylim()
-        yr = y1 - y0
 
-        # 次级(Minor)：平铺的小浪，朴素小号数字，紧贴K线
-        self._draw_ew_degree(ax, res.get('minor', []), impulse_color, correction_color,
-                             fontsize, line_color, wrap=lambda s: s, y_off=0.0,
-                             line_w=1.1, line_style='--', bbox=True)
-        # 主级(Major/Primary)：贯穿窗口的大浪，括号大号、向外偏移、实线更粗
+        # 只画主级(Major)大浪：贯穿窗口的 (1)-(5) / (A)-(C)，实线较粗
         self._draw_ew_degree(ax, res.get('major', []), '#b30000', '#1b6b1b',
-                             fontsize + 6, '#b30000', wrap=lambda s: f'({s})', y_off=0.05 * yr,
+                             fontsize + 4, '#b30000', wrap=lambda s: f'({s})', y_off=0.0,
                              line_w=2.2, line_style='-', bbox=True)
 
         if show_fib:

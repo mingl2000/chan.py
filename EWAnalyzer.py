@@ -564,7 +564,7 @@ def _analyze_major(H, L, xb, xe, up_to, anchor_cap=12):
     return _remap_segs(segs, seq)
 
 
-def analyze_window(highs, lows, dates, x_begin, x_end, up_to=4, anchor_cap=10, max_seg=12):
+def analyze_window(highs, lows, dates, x_begin, x_end, up_to=4, anchor_cap=10, max_seg=12, want_minor=True):
     """
     在[x_begin,x_end]窗口内做【平铺数浪】：从多个枢轴锚点分别搜索合法5浪推动(上/下行)，
     贪心选取互不重叠、跨度尽量大的一组推动铺满窗口，并在相邻推动之间填入ABC调整。
@@ -580,11 +580,12 @@ def analyze_window(highs, lows, dates, x_begin, x_end, up_to=4, anchor_cap=10, m
     L = list(lows[:xe + 1])
     D = list(dates[:xe + 1])
 
-    los, his = _pivots(H, L, xb, xe)
-    los, his = _cap(los, anchor_cap), _cap(his, anchor_cap)
-
-    minor = _tile(H, L, D, up_to, los, his, xe, full=False)     # 次级：原始K线上平铺小浪
-    major = _analyze_major(H, L, xb, xe, up_to)                  # 主级：zigzag上平铺大浪
+    minor = []
+    if want_minor:
+        los, his = _pivots(H, L, xb, xe)
+        los, his = _cap(los, anchor_cap), _cap(his, anchor_cap)
+        minor = _tile(H, L, D, up_to, los, his, xe, full=False)  # 次级：原始K线上平铺小浪
+    major = _analyze_major(H, L, xb, xe, up_to)                   # 主级：zigzag上平铺大浪
     if not minor and not major:
         return None
     return {"minor": minor, "major": major}
