@@ -14,7 +14,7 @@ from Common.CTime import CTime
 from Math.Demark import T_DEMARK_INDEX, CDemarkEngine
 
 from .PlotMeta import CBi_meta, CChanPlotMeta, CZS_meta
-from ElliottWave import label_elliott_waves
+from EWAnalyzer import analyze_window
 from matplotlib import rcParams
 rcParams['font.sans-serif'] = ['Microsoft YaHei']   # or ['SimHei']
 rcParams['axes.unicode_minus'] = False              # Fix for minus sign
@@ -116,7 +116,7 @@ def create_figure(plot_macd: Dict[KL_TYPE, bool], figure_config, lv_lst: List[KL
         gridspec_kw={'height_ratios': gridspec_kw},
         dpi=200
     )
-    plt.subplots_adjust(left=0.04, right=0.97, top=0.97, bottom=0.05, hspace=0.2)
+    plt.subplots_adjust(left=0.04, right=0.97, top=0.97, bottom=0.08, hspace=0.2)
     try:
         axes[0]
     except Exception:  # 只有一个级别，且不需要画macd
@@ -546,103 +546,92 @@ class CPlotDriver:
             for sub_zs_meta in zs_meta.sub_zs_lst:
                 ax.add_patch(Rectangle((sub_zs_meta.begin, sub_zs_meta.low), sub_zs_meta.w, sub_zs_meta.h, fill=False, color=color, linewidth=sub_linewidth, linestyle=line_style))
 
-    # 各浪级(degree)的艾略特记号约定：从低到高分别用 朴素数字 / 括号 / 圆圈，字号递增、颜色区分
-    ELLIOTT_NOTATION = {
-        'bi': dict(  # 笔 → 次级(Minor)
-            imp=['1', '2', '3', '4', '5'], cor=['A', 'B', 'C'],
-            fontsize=13, imp_c='#7a00cc', cor_c='#008b8b', bbox=True, offset=0.0),
-        'seg': dict(  # 线段 → 中级(Intermediate)
-            imp=['(1)', '(2)', '(3)', '(4)', '(5)'], cor=['(A)', '(B)', '(C)'],
-            fontsize=17, imp_c='#b30000', cor_c='#1b6b1b', bbox=True, offset=0.07),
-        'segseg': dict(  # 段中段 → 主级(Primary)
-            imp=['①', '②', '③', '④', '⑤'], cor=['Ⓐ', 'Ⓑ', 'Ⓒ'],
-            fontsize=22, imp_c='black', cor_c='#00008b', bbox=True, offset=0.15),
-    }
-
     def draw_elliott(
         self,
         meta: CChanPlotMeta,
         ax: Axes,
-        degrees=('bi', 'seg'),
-        only_sure=True,
+        up_to=5,
+        impulse_color='#7a00cc',
+        correction_color='#008b8b',
+        fontsize=14,
+        line_color='#999999',
         show_fib=False,
         fib_color='gray',
-        allow_diagonal=True,
     ):
         """
-        在缠论骨架上叠加【多浪级(degree)】的艾略特波浪标注，体现分形自相似：
-        低级别的5浪合成高级别的1浪。各级用不同记号区分(见 ELLIOTT_NOTATION)：
-          - 'bi'     笔    → 次级Minor:        1 2 3 4 5 / A B C   (朴素小字)
-          - 'seg'    线段  → 中级Intermediate: (1)(2)(3)(4)(5)/(A)(B)(C)
-          - 'segseg' 段中段→ 主级Primary:      ①②③④⑤ / ⒶⒷⒸ   (圆圈大字)
-        degrees 指定要画哪些浪级(默认 笔+线段两级)。
-        - show_fib=True 在最近一段(笔)上叠加斐波那契回撤位。
-        - allow_diagonal=True 表示“回退斜纹模式”：某级别严格数不出浪时放宽铁律3重试
-          (日线等清晰趋势保持严格，分钟级等震荡数据也能出浪)。
-        艾略特数浪本身多义(扩展/变异/斜纹等)，此叠加是“主计数+铁律校验”，非唯一解。
+        用移植自 ElliottWaveAnalyzer 的引擎(EWAnalyzer)在可见窗口内数浪并叠加标注：
+        以K线高低点直接构造 MonoWave(单波,含skip合并次级回撤)，对5浪的全部skip组合
+        做组合式搜索，用完整Impulse/LeadingDiagonal规则校验，选覆盖最大的推动并尝试其后ABC。
+        - up_to: skip组合上限(越大越能合并更多次级回撤,计算量也越大;5足够且够快)。
+        - show_fib: 在推动第5浪基础上叠加斐波那契回撤位。
+        标注1..5为推动(impulse_color)、A..C为调整(correction_color)，并用连线勾出数浪路径。
         """
-        level_map = {'bi': meta.bi_list, 'seg': meta.seg_list, 'segseg': meta.segseg_list}
-        x_begin = ax.get_xlim()[0]
-        for deg in degrees:
-            legs = level_map.get(deg)
-            if not legs or deg not in self.ELLIOTT_NOTATION:
-                continue
-            if only_sure:
-                legs = [lg for lg in legs if lg.is_sure]
-            self._draw_wave_degree(ax, legs, x_begin, self.ELLIOTT_NOTATION[deg], allow_diagonal)
-        if show_fib and meta.bi_list:
-            last = meta.bi_list[-1]
-            lo, hi = min(last.begin_y, last.end_y), max(last.begin_y, last.end_y)
-            rng = hi - lo
-            if rng > 0:
-                x0 = max(last.begin_x, int(x_begin))
-                x1 = int(ax.get_xlim()[1])
-                for r in (0.236, 0.382, 0.5, 0.618, 0.786):
-                    y = hi - rng * r if last.dir == BI_DIR.UP else lo + rng * r
-                    ax.plot([x0, x1], [y, y], color=fib_color, linewidth=0.8, linestyle=':', zorder=1)
-                    ax.text(x1, y, f' {r:.3f} ({y:.1f})', fontsize=8, color=fib_color, verticalalignment='center')
-
-    def _draw_wave_degree(self, ax: Axes, legs, x_begin, nota, allow_diagonal):
-        """在单一浪级的腿序列上数浪并按 nota 记号绘制(含可见窗口锚定与斜纹回退)。"""
-        if not legs:
+        n = meta.klu_len
+        if n < 6:
             return
-        vis = [i for i, lg in enumerate(legs) if lg.end_x >= x_begin]
-        if not vis:
+        highs = [0.0] * n
+        lows = [0.0] * n
+        for klu in meta.klu_iter():
+            highs[klu.idx] = klu.high
+            lows[klu.idx] = klu.low
+        x_begin, x_end = ax.get_xlim()
+        res = analyze_window(highs, lows, meta.datetick, x_begin, x_end, up_to=up_to)
+        if res is None:
             return
-        # 腿多(如笔)时锚定到可见窗口,保证近端标注可靠;腿少(如线段/段中段,结构跨度大)时全量数浪,
-        # 使跨越窗口左边界的高浪级也能画出露在窗口内的后半段(4/5浪)。仅绘制 end_x>=x_begin 的标注。
-        start = 0 if len(legs) <= 60 else vis[0]
-        sub = legs[start:]
-        labels = label_elliott_waves(sub, allow_diagonal=False)
-        if not labels and allow_diagonal:
-            labels = label_elliott_waves(sub, allow_diagonal=True)
-        if not labels:
-            return
-        remap = {'1': nota['imp'][0], '2': nota['imp'][1], '3': nota['imp'][2],
-                 '4': nota['imp'][3], '5': nota['imp'][4],
-                 'A': nota['cor'][0], 'B': nota['cor'][1], 'C': nota['cor'][2]}
-        label_map = {start + idx: (remap[txt], kind) for idx, txt, kind in labels}
         y0, y1 = ax.get_ylim()
-        y_off = nota['offset'] * (y1 - y0)  # 高浪级向外偏移，避免与低浪级标注重叠
-        for i, lg in enumerate(legs):
-            if lg.end_x < x_begin or i not in label_map:
-                continue
-            txt, kind = label_map[i]
-            color = nota['imp_c'] if kind == 'impulse' else nota['cor_c']
-            up_end = lg.dir == BI_DIR.UP  # 终点是高点
-            bbox = dict(boxstyle='circle', facecolor='white', edgecolor=color, alpha=0.8, pad=0.2) if nota['bbox'] else None
-            ax.text(
-                lg.end_x,
-                lg.end_y + (y_off if up_end else -y_off),
-                txt,
-                fontsize=nota['fontsize'],
-                color=color,
-                fontweight='bold',
-                verticalalignment='bottom' if up_end else 'top',
-                horizontalalignment='center',
-                bbox=bbox,
-                zorder=6,
-            )
+        yr = y1 - y0
+
+        # 次级(Minor)：平铺的小浪，朴素小号数字，紧贴K线
+        self._draw_ew_degree(ax, res.get('minor', []), impulse_color, correction_color,
+                             fontsize, line_color, wrap=lambda s: s, y_off=0.0,
+                             line_w=1.1, line_style='--', bbox=True)
+        # 主级(Major/Primary)：贯穿窗口的大浪，括号大号、向外偏移、实线更粗
+        self._draw_ew_degree(ax, res.get('major', []), '#b30000', '#1b6b1b',
+                             fontsize + 6, '#b30000', wrap=lambda s: f'({s})', y_off=0.05 * yr,
+                             line_w=2.2, line_style='-', bbox=True)
+
+        if show_fib:
+            imps = [s for s in res.get('major', []) if s['kind'] == 'impulse' and len(s['points']) == 5] \
+                or [s for s in res.get('minor', []) if s['kind'] == 'impulse' and len(s['points']) == 5]
+            if imps:
+                last = imps[-1]
+                w1_price = last['points'][0][1]
+                w5_idx, w5_price = last['points'][4][0], last['points'][4][1]
+                lo, hi = min(w1_price, w5_price), max(w1_price, w5_price)
+                rng = hi - lo
+                if rng > 0:
+                    up = w5_price >= w1_price
+                    x1 = int(x_end)
+                    for r in (0.236, 0.382, 0.5, 0.618, 0.786):
+                        y = hi - rng * r if up else lo + rng * r
+                        ax.plot([w5_idx, x1], [y, y], color=fib_color, linewidth=0.8, linestyle=':', zorder=1)
+                        ax.text(x1, y, f' {r:.3f} ({y:.1f})', fontsize=8, color=fib_color, verticalalignment='center')
+
+    def _draw_ew_degree(self, ax, segments, imp_c, cor_c, fontsize, line_c, wrap, y_off, line_w, line_style, bbox):
+        """绘制单一浪级的一组段(推动+调整)：连线 + 逐点标注。wrap 决定记号样式(如加括号)。"""
+        last_end = None
+        for seg in segments:
+            xy = []
+            if seg['kind'] == 'impulse':
+                xy.append(seg['origin'][:2])
+            elif last_end is not None:
+                xy.append(last_end)
+            xy += [(idx, price) for (idx, price, _peak, _lab) in seg['points']]
+            if len(xy) >= 2:
+                ax.plot([p[0] for p in xy], [p[1] for p in xy], color=line_c,
+                        linewidth=line_w, linestyle=line_style, zorder=4)
+            last_end = xy[-1] if xy else last_end
+        for seg in segments:
+            color = imp_c if seg['kind'] == 'impulse' else cor_c
+            for (idx, price, is_peak, lab) in seg['points']:
+                ax.text(
+                    idx, price + (y_off if is_peak else -y_off), wrap(lab),
+                    fontsize=fontsize, color=color, fontweight='bold',
+                    verticalalignment='bottom' if is_peak else 'top',
+                    horizontalalignment='center',
+                    bbox=dict(boxstyle='circle', facecolor='white', edgecolor=color, alpha=0.85, pad=0.2) if bbox else None,
+                    zorder=6,
+                )
 
     def draw_macd(self, meta: CChanPlotMeta, ax: Axes, x_limits, width=0.4):
         macd_lst = [klu.macd for klu in meta.klu_iter()]

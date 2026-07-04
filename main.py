@@ -105,10 +105,9 @@ def main(ticker, interval, source, name,st=None,bars=500,x_range=400,elliott=Tru
             # "disp_end": True,
         },
         "elliott": {
-            # 要标注的浪级(degree): 'bi'=笔/次级Minor, 'seg'=线段/中级Intermediate, 'segseg'=段中段/主级Primary
-            "degrees": ("bi", "seg"),
-            "show_fib": False,       # True=在最近一段腿上叠加斐波那契回撤位以预测目标
-            "allow_diagonal": True,  # True=严格数不出浪时回退斜纹模式(日线保持严格,分钟级也能出浪); False=始终严格
+            # EWAnalyzer引擎参数：up_to=skip组合上限(越大越能合并次级回撤,计算量也越大)
+            "up_to": 4,
+            "show_fib": False,  # True=在推动第5浪上叠加斐波那契回撤位以预测目标
         },
         "figure": {
             "x_range": x_range,
